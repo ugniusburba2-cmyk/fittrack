@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- FitTrack icon: calorie ring + dumbbell -->
+  <rect width="512" height="512" rx="112" fill="#0D1013"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#1F2429" stroke-width="44"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#4ADE80" stroke-width="44" stroke-linecap="round"
+          stroke-dasharray="754 1005" transform="rotate(-90 256 256)"/>
+  <g fill="#EEF1F3">
+    <rect x="166" y="236" width="180" height="40" rx="12"/>
+    <rect x="160" y="196" width="40" height="120" rx="14"/>
+    <rect x="312" y="196" width="40" height="120" rx="14"/>
+    <rect x="132" y="218" width="30" height="76" rx="12"/>
+    <rect x="350" y="218" width="30" height="76" rx="12"/>
+  </g>
+</svg>

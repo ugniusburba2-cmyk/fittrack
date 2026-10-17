@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport-fit=cover lets the app use the full screen on phones with a notch -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D1013">
+  <meta name="description" content="Personal food and workout tracker">
+
+  <!-- iPhone "Add to Home Screen" support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FitTrack">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <title>FitTrack</title>
+</head>
+<body>
+  <!-- The current screen (Diary, Foods, Workout, Body, Settings) is drawn in here by app.js -->
+  <main id="screen" class="screen" aria-live="polite"></main>
+
+  <!-- Rest timer bar (shown only while a rest timer is running) -->
+  <div id="timer-bar" class="timer-bar" hidden></div>
+
+  <!-- Bottom navigation -->
+  <nav class="bottom-nav" aria-label="Main">
+    <button class="nav-btn" data-nav="diary" aria-label="Diary">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>
+      <span>Diary</span>
+    </button>
+    <button class="nav-btn" data-nav="foods" aria-label="Foods">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-4.4 0-7-3.1-7-7.5S8 6 12 6s7 3.1 7 7.5S16.4 21 12 21z"/><path d="M12 6c0-1.7 1-3 3-3"/></svg>
+      <span>Foods</span>
+    </button>
+    <button class="nav-btn" data-nav="workout" aria-label="Workout">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12"/></svg>
+      <span>Workout</span>
+    </button>
+    <button class="nav-btn" data-nav="body" aria-label="Body weight">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19l5-6 4 3 7-9"/><path d="M15 7h5v5"/></svg>
+      <span>Body</span>
+    </button>
+    <button class="nav-btn" data-nav="settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Pop-up sheets (add food, edit entry, scanners...) are added in here -->
+  <div id="sheets"></div>
+
+  <!-- Small messages at the bottom of the screen -->
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Built-in food list first, then the app itself -->
+  <script src="foods-db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
