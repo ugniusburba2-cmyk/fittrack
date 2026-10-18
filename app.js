@@ -13,7 +13,7 @@
      8. Foods library and recipes
      9. Barcode scanner
     10. Nutrition label scanner (OCR)
-    11. AI photo estimate (Claude)
+    11. AI photo estimate (Gemini)
     12. Workout tracker
     13. Rest timer
     14. Body weight
@@ -28,7 +28,7 @@
    ========================================================= */
 
 const STORE_KEY = 'fittrack_v1';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 const MEALS = [
   { id: 'breakfast', name: 'Breakfast' },
@@ -39,10 +39,12 @@ const MEALS = [
 
 const NUTRIENTS = ['kcal', 'protein', 'carbs', 'fat', 'fiber', 'sugar'];
 
+// Google Gemini models for the AI photo estimate (free tier from Google AI Studio)
 const AI_MODELS = [
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (more accurate)' },
-  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 (cheaper, faster)' }
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (more accurate)' },
+  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (faster, lighter)' }
 ];
+const AI_DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // CDN libraries, only downloaded when you first use the feature
 const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
@@ -74,8 +76,8 @@ function defaultData() {
     version: 1,
     settings: {
       goals: { kcal: 2000, protein: 150, carbs: 200, fat: 65, water: 2500 },
-      apiKey: '',
-      aiModel: 'claude-sonnet-5-5',
+      geminiKey: '',
+      aiModel: AI_DEFAULT_MODEL,
       theme: 'dark',
       profile: 'me',
       restSeconds: 90,
@@ -1888,9 +1890,9 @@ function parseLabel(rawText) {
 }
 
 /* =========================================================
-   11. AI photo estimate (Claude, optional)
+   11. AI photo estimate (Gemini, optional, free)
    Needs your own API key (Settings). The key stays on this phone
-   and is only sent to api.anthropic.com.
+   and is only sent to Google (generativelanguage.googleapis.com).
    ========================================================= */
 
 const AI_PROMPT =
@@ -1904,27 +1906,25 @@ const AI_PROMPT =
   '"confidence": "low" | "medium" | "high", "notes": "one short sentence about what is uncertain"}\n' +
   'All numbers are for the whole item as shown (not per 100 g). If there is no food in the photo, return an empty "items" list.';
 
-async function callClaude(path, method, body, timeoutMs) {
+// Calls Google Gemini. The key is sent in a request header and is only sent to Google.
+async function callGemini(model, body, timeoutMs) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs || 90000);
   let res;
   try {
-    res = await fetch('https://api.anthropic.com' + path, {
-      method: method,
+    res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+      method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': DB.settings.apiKey,
-        'anthropic-version': '2023-06-01',
-        // Required for calling the API straight from a web page
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'x-goog-api-key': DB.settings.geminiKey
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: JSON.stringify(body),
       signal: controller.signal
     });
   } catch (err) {
     clearTimeout(t);
     if (err.name === 'AbortError') throw new Error('The request took too long. Check your internet and try again.');
-    throw new Error(navigator.onLine ? 'Could not reach Anthropic. Check your internet connection.' : 'You are offline. The AI estimate needs internet.');
+    throw new Error(navigator.onLine ? 'Could not reach Google. Check your internet connection.' : 'You are offline. The AI estimate needs internet.');
   }
   clearTimeout(t);
   let json = null;
@@ -1935,34 +1935,37 @@ async function callClaude(path, method, body, timeoutMs) {
 
 function apiErrorText(status, json) {
   const m = (json && json.error && json.error.message) || '';
-  if (status === 401) return 'Your API key was rejected. Check it in Settings (it starts with "sk-ant-").';
-  if (status === 403) return 'This API key is not allowed to do this. ' + m;
-  if (status === 400 && /credit|balance|billing/i.test(m)) return 'Your Anthropic account has no credit left. Add credit at platform.claude.com (Billing).';
+  if (status === 400 && /api key|API_KEY|invalid/i.test(m)) return 'Your Gemini API key was rejected. Check it in Settings.';
   if (status === 400) return 'The request was not accepted: ' + m;
+  if (status === 401 || status === 403) return 'Your Gemini API key is not allowed to do this. Check it in Settings. ' + m;
   if (status === 404) return 'Model not found. Pick another model in Settings. ' + m;
   if (status === 413) return 'The photo is too large.';
-  if (status === 429) return 'Too many requests right now. Wait a minute and try again.';
-  if (status >= 500) return 'Anthropic is busy or having problems (' + status + '). Try again in a moment.';
+  if (status === 429) return 'Free limit reached or too many requests right now. Wait a minute, or try again tomorrow. ' + m;
+  if (status >= 500) return 'Google is busy or having problems (' + status + '). Try again in a moment.';
   return 'Request failed (' + status + '). ' + m;
 }
 
 async function estimateMealFromPhoto(file, note) {
   const canvas = await fileToCanvas(file, 1280, false);
   const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-  const json = await callClaude('/v1/messages', 'POST', {
-    model: DB.settings.aiModel || AI_MODELS[0].id,
-    max_tokens: 4000,
-    messages: [{
+  const model = AI_MODELS.some((m) => m.id === DB.settings.aiModel) ? DB.settings.aiModel : AI_DEFAULT_MODEL;
+  const json = await callGemini(model, {
+    contents: [{
       role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-        { type: 'text', text: AI_PROMPT + (note ? '\n\nUser note: ' + note : '') }
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+        { text: AI_PROMPT + (note ? '\n\nUser note: ' + note : '') }
       ]
-    }]
+    }],
+    generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 4000 }
   });
-  const text = (json.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+  const cand = (json.candidates || [])[0] || {};
+  const text = ((cand.content && cand.content.parts) || []).map((p) => p.text || '').join('\n');
   const start = text.indexOf('{'), end = text.lastIndexOf('}');
-  if (start < 0 || end < start) throw new Error(json.stop_reason === 'max_tokens' ? 'The answer was cut off. Try again.' : 'The AI did not return a usable answer. Try again.');
+  if (start < 0 || end < start) {
+    if (!cand.content && json.promptFeedback) throw new Error('Google did not process this photo (' + (json.promptFeedback.blockReason || 'blocked') + '). Try another photo.');
+    throw new Error(cand.finishReason === 'MAX_TOKENS' ? 'The answer was cut off. Try again.' : 'The AI did not return a usable answer. Try again.');
+  }
   let data;
   try { data = JSON.parse(text.slice(start, end + 1)); } catch (_) { throw new Error('The AI answer could not be read. Try again.'); }
   const num = (v) => { const n = Number(v); return isFinite(n) && n > 0 ? n : 0; };
@@ -1982,10 +1985,10 @@ function openAIPhoto(ctx) {
   const mealName = MEALS.find((m) => m.id === ctx.meal).name;
 
   // No key: explain and offer to go to Settings
-  if (!DB.settings.apiKey) {
+  if (!DB.settings.geminiKey) {
     const s = openSheet({
       title: 'AI photo estimate',
-      body: '<div class="notice err"><b>No API key added</b>This optional feature needs your own Anthropic API key. Add it in <b>Settings → AI photo estimate</b>. Everything else in the app works without it.</div>',
+      body: '<div class="notice err"><b>No Gemini API key added</b>This optional feature needs a free Gemini API key. Add it in <b>Settings → AI photo estimate</b>. Everything else in the app works without it.</div>',
       foot: '<button type="button" class="btn" data-close>Close</button><button type="button" class="btn primary" data-go>Open Settings</button>'
     });
     s.foot.addEventListener('click', async (e) => {
@@ -2000,7 +2003,7 @@ function openAIPhoto(ctx) {
     title: 'AI photo estimate',
     full: true,
     body:
-      '<p class="muted small" style="margin-bottom:12px">Photograph your meal. Claude estimates each food, its weight and macros. You can change everything before it is logged. Each photo costs about 1–2 cents on your Anthropic account.</p>' +
+      '<p class="muted small" style="margin-bottom:12px">Photograph your meal. Gemini estimates each food, its weight and macros. You can change everything before it is logged. Free with your Gemini API key.</p>' +
       photoPickerHtml() +
       '<label class="field mt12"><span>Note for the AI (optional)</span><input class="input" data-note autocomplete="off" placeholder="e.g. big plate, fried in butter, 2 eggs"></label>' +
       '<div data-out></div>',
@@ -2021,7 +2024,7 @@ function openAIPhoto(ctx) {
     items = [];
     logBtn.disabled = true;
     out.innerHTML = '<img class="photo-preview mt8" alt="Meal photo" src="' + url + '">' +
-      '<div class="row muted mt12"><span class="spinner"></span> Asking Claude… (usually 5–20 seconds)</div>';
+      '<div class="row muted mt12"><span class="spinner"></span> Asking Gemini… (usually 5–20 seconds)</div>';
     try {
       const data = await estimateMealFromPhoto(lastFile, $('[data-note]', s.body).value.trim());
       if (s.closed) return;
@@ -2892,7 +2895,7 @@ function renderBody() {
 function renderSettings() {
   const g = DB.settings.goals;
   const macroKcal = g.protein * 4 + g.carbs * 4 + g.fat * 9;
-  const hasKey = !!DB.settings.apiKey;
+  const hasKey = !!DB.settings.geminiKey;
   const usedKb = Math.round((localStorage.getItem(STORE_KEY) || '').length / 1024);
   const goalField = (k, label, unit) =>
     '<label class="field"><span>' + label + '</span><div class="input-suffix"><input class="input" inputmode="decimal" data-goal="' + k + '" value="' + esc(fmtNum(g[k])) + '"><em>' + unit + '</em></div></label>';
@@ -2908,17 +2911,16 @@ function renderSettings() {
       '<div class="mt12">' + goalField('water', 'Water', 'ml') + '</div>' +
     '</section>' +
 
-    '<div class="section-title">AI photo estimate (optional)</div>' +
+    '<div class="section-title">AI photo estimate (optional, free)</div>' +
     '<section class="card">' +
-      '<p class="small">Lets you photograph a meal and get a calorie and macro estimate from Claude. <b>Everything else in the app works without this.</b></p>' +
+      '<p class="small">Lets you photograph a meal and get a calorie and macro estimate from Google Gemini. <b>Everything else in the app works without this.</b></p>' +
       '<ol class="small muted" style="padding-left:18px;margin:10px 0">' +
-        '<li>Go to <b>platform.claude.com</b> and sign in or create an account.</li>' +
-        '<li>Add credit under <b>Billing</b> (prepaid; you can set a monthly limit).</li>' +
-        '<li>Open <b>API Keys</b>, create a key and paste it below.</li>' +
+        '<li>Go to <b>aistudio.google.com</b> and sign in with a Google account.</li>' +
+        '<li>Click <b>Get API key</b>, create a key and paste it below.</li>' +
       '</ol>' +
-      '<div class="notice warn small"><b>This costs money per photo</b>Each estimate is charged to your Anthropic account – roughly 1–2 cents per photo with Sonnet, less with Haiku. The key is stored only on this phone and is only sent to api.anthropic.com. It is not included in backups.</div>' +
-      '<label class="field"><span>API key ' + (hasKey ? '<span class="tag mine">Saved</span>' : '<span class="tag">Not set</span>') + '</span>' +
-        '<div class="key-row"><input class="input" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" data-key value="' + esc(DB.settings.apiKey) + '">' +
+      '<div class="notice ok small"><b>Free to use</b>The Gemini free tier has daily limits set by Google. The key is stored only on this phone and is only sent to Google. It is not included in backups.</div>' +
+      '<label class="field mt12"><span>Gemini API key ' + (hasKey ? '<span class="tag mine">Saved</span>' : '<span class="tag">Not set</span>') + '</span>' +
+        '<div class="key-row"><input class="input" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" data-key value="' + esc(DB.settings.geminiKey) + '">' +
         '<button type="button" class="icon-btn" data-act="show-key" aria-label="Show key">' + ICON.eye + '</button></div></label>' +
       '<label class="field"><span>Model</span><select class="input" data-model>' +
         AI_MODELS.map((m) => '<option value="' + m.id + '"' + (m.id === DB.settings.aiModel ? ' selected' : '') + '>' + esc(m.label) + '</option>').join('') + '</select></label>' +
@@ -2967,10 +2969,10 @@ function renderSettings() {
       toast('Goal saved');
     }
     if (t.matches('[data-key]')) {
-      DB.settings.apiKey = t.value.trim();
+      DB.settings.geminiKey = t.value.trim();
       saveData();
       renderSettings();
-      toast(DB.settings.apiKey ? 'API key saved on this phone' : 'API key removed');
+      toast(DB.settings.geminiKey ? 'API key saved on this phone' : 'API key removed');
     }
     if (t.matches('[data-model]')) { DB.settings.aiModel = t.value; saveData(); toast('Model saved'); }
     if (t.dataset.pname) {
@@ -2991,7 +2993,7 @@ function renderSettings() {
     const act = a.dataset.act;
     if (act === 'show-key') { const k = $('[data-key]', screen); k.type = k.type === 'password' ? 'text' : 'password'; }
     if (act === 'remove-key') {
-      if (await confirmDialog('Remove the API key from this phone?', 'Remove', true)) { DB.settings.apiKey = ''; saveData(); renderSettings(); toast('API key removed'); }
+      if (await confirmDialog('Remove the API key from this phone?', 'Remove', true)) { DB.settings.geminiKey = ''; saveData(); renderSettings(); toast('API key removed'); }
     }
     if (act === 'test-key') testApiKey();
     if (act === 'theme') { DB.settings.theme = a.dataset.t; saveData(); applyTheme(); renderSettings(); }
@@ -3007,7 +3009,10 @@ async function testApiKey() {
   box.innerHTML = '<div class="row muted small"><span class="spinner"></span> Checking key…</div>';
   try {
     // Listing models is free and proves the key works
-    await callClaude('/v1/models?limit=1', 'GET', null, 20000);
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
+      headers: { 'x-goog-api-key': DB.settings.geminiKey }
+    });
+    if (!res.ok) { let j = null; try { j = await res.json(); } catch (_) {} throw new Error(apiErrorText(res.status, j)); }
     box.innerHTML = '<div class="notice ok"><b>Key works</b>You can use the AI photo estimate.</div>';
   } catch (err) {
     box.innerHTML = '<div class="notice err"><b>Key test failed</b>' + esc(err.message) + '</div>';
@@ -3016,7 +3021,7 @@ async function testApiKey() {
 
 function backupObject() {
   const copy = JSON.parse(JSON.stringify(DB));
-  copy.settings.apiKey = '';            // never put the key in a backup file
+  copy.settings.geminiKey = '';         // never put the key in a backup file
   return { app: 'FitTrack', format: 1, exportedAt: new Date().toISOString(), data: copy };
 }
 
@@ -3057,9 +3062,9 @@ async function importBackup(file) {
   const when = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString('en-GB') : 'unknown date';
   const ok = await confirmDialog('Replace ALL data on this phone with the backup from ' + when + '? Data that is only on this phone will be lost.', 'Replace', true);
   if (!ok) return;
-  const key = DB.settings.apiKey;
+  const key = DB.settings.geminiKey;
   DB = withDefaults(data);
-  if (!DB.settings.apiKey) DB.settings.apiKey = key;   // keep your key
+  if (!DB.settings.geminiKey) DB.settings.geminiKey = key;   // keep your key
   saveData();
   applyTheme();
   render();

@@ -651,3 +651,167 @@ body.timer-on .toast { bottom: calc(156px + env(safe-area-inset-bottom)); }
 @media (min-width: 480px) {
   .screen { padding-left: 20px; padding-right: 20px; }
 }
+
+/* =========================================================
+   Visual refresh (v1.1)
+   Richer surfaces, soft glow, bolder headings and a floating nav.
+   Only looks change here; layout and behaviour stay the same.
+   ========================================================= */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #080B12;
+  --surface: #121722;
+  --surface-2: #1A2130;
+  --surface-3: #252E40;
+  --line: rgba(148, 163, 184, .12);
+  --text: #F5F7FB;
+  --muted: #9AA4B8;
+  --accent: #34D399;
+  --accent-2: #22D3EE;
+  --accent-ink: #04150D;
+  --glow: rgba(52, 211, 153, .22);
+  --shadow: 0 18px 40px rgba(0, 0, 0, .45);
+}
+
+:root[data-theme="light"] {
+  --bg: #EEF2F7;
+  --surface: #FFFFFF;
+  --surface-2: #F3F6FA;
+  --surface-3: #E2E8F0;
+  --line: rgba(15, 23, 42, .08);
+  --text: #0F172A;
+  --muted: #64748B;
+  --accent: #10B981;
+  --accent-2: #0EA5E9;
+  --accent-ink: #FFFFFF;
+  --glow: rgba(16, 185, 129, .25);
+  --shadow: 0 14px 34px rgba(15, 23, 42, .10);
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 100% -10%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 60%),
+    radial-gradient(800px 500px at -10% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+.topbar h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  background: linear-gradient(120deg, var(--text) 30%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  color: var(--accent);
+  margin: 26px 6px 10px;
+}
+
+.card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 45%, var(--surface)) 0%, var(--surface) 100%);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  border-radius: 16px;
+  border-color: var(--line);
+  background: var(--surface-2);
+  font-weight: 650;
+  transition: transform .12s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  box-shadow: 0 8px 22px var(--glow);
+}
+.btn.danger { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+.btn:disabled { opacity: .4; }
+
+.input, select.input, textarea.input {
+  background: var(--surface-2);
+  border-radius: 14px;
+  border-color: var(--line);
+}
+
+.seg { background: var(--surface-2); border-radius: 14px; }
+.seg button.on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); }
+
+.chip { border-radius: 999px; background: var(--surface-2); border-color: var(--line); }
+.chip.on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 16px var(--glow); }
+
+.ring .fill { stroke: var(--accent); filter: drop-shadow(0 0 6px var(--glow)); }
+.ring.over .fill { stroke: var(--danger); }
+.ring .track { stroke: var(--surface-3); }
+.ring-text b { background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ring.over .ring-text b { background: none; color: var(--danger); -webkit-text-fill-color: var(--danger); }
+
+.bar { height: 10px; background: var(--surface-3); }
+.bar > i { background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 10px var(--glow); }
+.bar.protein > i { background: linear-gradient(90deg, var(--protein), color-mix(in srgb, var(--protein) 60%, #fff)); box-shadow: none; }
+.bar.carbs > i { background: linear-gradient(90deg, var(--carbs), color-mix(in srgb, var(--carbs) 60%, #fff)); box-shadow: none; }
+.bar.fat > i { background: linear-gradient(90deg, var(--fat), color-mix(in srgb, var(--fat) 60%, #fff)); box-shadow: none; }
+.bar.water > i { background: linear-gradient(90deg, var(--water), color-mix(in srgb, var(--water) 60%, #fff)); box-shadow: none; }
+
+.meal-head h3 { font-size: 19px; font-weight: 800; }
+.add-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--accent-ink);
+  box-shadow: 0 6px 16px var(--glow);
+}
+
+.entry, .list-item { border-bottom-color: var(--line); }
+.entry .kcal, .list-item .right { font-weight: 800; }
+
+.stat-box { border-radius: 18px; background: var(--surface-2); border-color: var(--line); }
+.stat-box b { font-size: 22px; }
+
+.tool {
+  border-radius: 18px;
+  background: var(--surface-2);
+  border-color: var(--line);
+  transition: transform .12s ease, background .2s ease;
+}
+.tool:active { background: var(--surface-3); }
+.tool svg { stroke: var(--accent); }
+
+.notice { border-radius: 16px; }
+.photo-preview { border-radius: 18px; }
+
+.sheet {
+  border-radius: 28px 28px 0 0;
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 40%);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, .5);
+}
+.sheet-head h2 { font-size: 20px; font-weight: 800; }
+
+/* Floating bottom navigation */
+.bottom-nav {
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  margin: 0 auto;
+  max-width: 536px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.nav-btn { border-radius: 16px; color: var(--muted); transition: color .2s ease, background .2s ease; }
+.nav-btn.on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.nav-btn span { font-weight: 650; }

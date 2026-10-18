@@ -9,7 +9,7 @@
    so phones download the new version.
    ========================================================= */
 
-const CACHE_VERSION = 'fittrack-v1';
+const CACHE_VERSION = 'fittrack-v2';
 const LIB_CACHE = 'fittrack-libs-v1';
 
 // The "app shell": every file the app needs to start
@@ -85,5 +85,5 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
-  // Everything else (Open Food Facts, Anthropic API): normal network request
+  // Everything else (Open Food Facts, Google Gemini API): normal network request
 });

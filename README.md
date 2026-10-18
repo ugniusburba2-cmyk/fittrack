@@ -31,10 +31,13 @@ Open it once while online so it saves itself for offline use.
 | Diary, editing, water, goals | Online product search (Open Food Facts) |
 | My Foods, recipes, built-in foods | Barcode **lookup** of new products |
 | Workout tracker, rest timer, history | First use of the barcode scanner on iPhone and of label OCR (they download a library; usually work offline after) |
-| Body weight, charts, backup export/import | AI photo estimate (always) |
+| Body weight, charts, backup export/import | AI photo estimate (always, free Gemini key) |
+
+## AI photo estimate (optional, free)
+Uses Google Gemini. Go to aistudio.google.com, create an API key, and paste it in Settings → AI photo estimate. The key stays on your phone and is sent only to Google.
 
 ## Updating the app later
-Upload changed files to GitHub, and in `service-worker.js` raise `CACHE_VERSION` (e.g. `fittrack-v2`). The app will show "A new version is ready – Update".
+Upload changed files to GitHub, and in `service-worker.js` raise `CACHE_VERSION` (e.g. `fittrack-v3`). The app will show "A new version is ready – Update".
 
 ## Backups
-Settings → **Export backup** saves a `.json` file (your API key is never included). **Import backup** replaces all data with that file. Export regularly: clearing Safari/Chrome website data deletes everything.
+Settings → **Export backup** saves a `.json` file (your Gemini API key is never included). **Import backup** replaces all data with that file. Export regularly: clearing Safari/Chrome website data deletes everything.
