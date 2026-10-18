@@ -9,7 +9,7 @@
    so phones download the new version.
    ========================================================= */
 
-const CACHE_VERSION = 'fittrack-v2';
+const CACHE_VERSION = 'fittrack-v3';
 const LIB_CACHE = 'fittrack-libs-v1';
 
 // The "app shell": every file the app needs to start

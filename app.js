@@ -28,7 +28,7 @@
    ========================================================= */
 
 const STORE_KEY = 'fittrack_v1';
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 const MEALS = [
   { id: 'breakfast', name: 'Breakfast' },
@@ -42,7 +42,7 @@ const NUTRIENTS = ['kcal', 'protein', 'carbs', 'fat', 'fiber', 'sugar'];
 // Google Gemini models for the AI photo estimate (free tier from Google AI Studio)
 const AI_MODELS = [
   { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (more accurate)' },
-  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (faster, lighter)' }
+  { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (faster, lighter)' }
 ];
 const AI_DEFAULT_MODEL = 'gemini-2.5-flash';
 
